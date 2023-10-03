@@ -25,10 +25,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 	DEPENDENCIES builtin_interfaces
 )
 
-# install(PROGRAMS
-#   scripts/joint_state_publisher.py
-#   scripts/acf_interface.py
-#   DESTINATION lib/${PROJECT_NAME}
-# )
+install(PROGRAMS
+  src/acf.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()
