@@ -167,7 +167,7 @@ class FerroboticsACF(Node):
         return response
 
     def set_t_ramp(self, request : SetDuration.Request, response : SetDuration.Response):
-        duration = request.duration.to_secs()
+        duration = request.duration.sec + (request.duration.nanosec / 1000000000.0)
         if not self.check_ramp_duration(duration):
             response.success = False
             response.message = "Invalid duration."
