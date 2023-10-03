@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-import rospy
-from ferrobotics_acf.msg import ACFTelem
-from ferrobotics_acf.srv import (
-    SetFloat,
-    SetFloatResponse,
-    SetDuration,
-    SetDurationResponse,
-)
+import rclpy
+from rclpy.node import Node
+
+# Import messages and services
 from std_msgs.msg import Float32
+from ferrobotics_acf.srv import SetFloat, SetDuration
+from ferrobotics_acf.msg import ACFTelem
+
 import socket
 import sys
 
@@ -17,7 +16,7 @@ if sys.version_info.major >= 3:
     bytes_args = ("ASCII",)
 
 
-class FerroboticsACF:
+class FerroboticsACF(Node):
     DEFAULT_IP = "192.168.99.1"
     DEFAULT_PORT = 7070
     DEFAULT_AUTHENTICATION = "ferba"
@@ -43,25 +42,33 @@ class FerroboticsACF:
     ]
 
     def __init__(self):
-        rospy.init_node("ACF")
+        super().__init__('ACF')
         self.get_params()
         self.connect()
         assert self.authenticate()
         self.ros_setup()
 
     def get_params(self):
-        self.ip = rospy.get_param("~ip", self.DEFAULT_IP)
-        self.port = rospy.get_param("~port", self.DEFAULT_PORT)
-        self.authentication = rospy.get_param(
-            "~authentication", self.DEFAULT_AUTHENTICATION
-        )
-        self.id = rospy.get_param("~id", self.DEFAULT_ID)
-        self.f_max = rospy.get_param("~f_max", self.DEFAULT_F_MAX)
-        self.initial_force = rospy.get_param("~initial_force", 0)
+        self.declare_parameter('ip', self.DEFAULT_IP)
+        self.declare_parameter('port', self.DEFAULT_PORT)
+        self.declare_parameter('authentication', self.DEFAULT_AUTHENTICATION)
+        self.declare_parameter('id', self.DEFAULT_ID)
+        self.declare_parameter('f_max', self.DEFAULT_F_MAX)
+        self.declare_parameter('initial_force', 0.0)
+        self.declare_parameter('ramp_duration', 0.0)
+        self.declare_parameter('payload', 0.0)
+        self.declare_parameter('frequency', 10.0)
+
+        self.ip = self.get_parameter('ip').get_parameter_value().string_value
+        self.port = self.get_parameter('port').get_parameter_value().integer_value
+        self.authentication = self.get_parameter('authentication').get_parameter_value().string_value
+        self.id = self.get_parameter('id').get_parameter_value().integer_value
+        self.f_max = self.get_parameter('f_max').get_parameter_value().integer_value
+        self.initial_force = self.get_parameter('initial_force').get_parameter_value().double_value
         assert self.check_force(self.initial_force)
-        self.ramp_duration = rospy.get_param("~ramp_duration", 0)
+        self.ramp_duration = self.get_parameter('ramp_duration').get_parameter_value().double_value
         assert self.check_ramp_duration(self.ramp_duration)
-        self.payload = rospy.get_param("~payload", 0)
+        self.payload = self.get_parameter('payload').get_parameter_value().double_value
         assert self.check_payload(self.payload)
 
     def check_force(self, force):
@@ -102,7 +109,7 @@ class FerroboticsACF:
                 )
             )
         except:
-            rospy.logwarn("Reconnecting...")
+            self.get_logger().warn("Reconnecting...")
             self.connect()
             assert self.authenticate()
             self.send_command(force)
@@ -139,34 +146,47 @@ class FerroboticsACF:
             self.sock.recv(self.BUFSIZE).decode().strip(self.TERMINATOR).split(self.DELIMINATOR)
         )
 
-    def set_payload(self, req):
-        if not self.check_payload(req.value):
-            return SetFloatResponse(False, "Invalid payload value.")
-        self.payload = req.value
-        return SetFloatResponse(True, "")
+    def set_payload(self, request : SetFloat.Request, response : SetFloat.Response):
+        if not self.check_payload(request.value):
+            response.success = False
+            response.message = "Invalid payload value."
+        else:
+            response.success = True
+            response.message = ""
+            self.payload = request.value
+        return response
 
-    def set_f_zero(self, req):
-        if not self.check_force(req.value):
-            return SetFloatResponse(False, "Invalid force value.")
-        self.initial_force = req.value
-        return SetFloatResponse(True, "")
+    def set_f_zero(self, request : SetFloat.Request, response : SetFloat.Response):
+        if not self.check_force(request.value):
+            response.success = False
+            response.message = "Invalid force value."
+        else:
+            response.success = True
+            response.message = ""
+            self.initial_force = request.value
+        return response
 
-    def set_t_ramp(self, req):
-        duration = req.duration.to_secs()
+    def set_t_ramp(self, request : SetDuration.Request, response : SetDuration.Response):
+        duration = request.duration.to_secs()
         if not self.check_ramp_duration(duration):
-            return SetDurationResponse(False, "Invalid duration.")
-        self.ramp_duration = duration
-        return SetDurationResponse(True, "")
+            response.success = False
+            response.message = "Invalid duration."
+        else:
+            response.success = True
+            response.message = ""
+            self.ramp_duration = duration
+        return response
 
     def ros_setup(self):
-        rospy.Subscriber("~/ACF/force", Float32, self.command_handler)
-        self.telem_pub = rospy.Publisher("~/ACF/telem", ACFTelem, queue_size=5)
-        rospy.Service("~/ACF/set_payload", SetFloat, self.set_payload)
-        rospy.Service("~/ACF/set_f_zero", SetFloat, self.set_f_zero)
-        rospy.Service("~/ACF/set_t_ramp", SetDuration, self.set_t_ramp)
-
+        self.create_subscription(Float32, '/ACF/force', self.command_handler, 10)
+        self.telem_pub = self.create_publisher(ACFTelem, '/ACF/telem', 5)
+        self.create_service(SetFloat, '/ACF/set_payload', self.set_payload)
+        self.create_service(SetFloat, '/ACF/set_f_zero', self.set_f_zero)
+        self.create_service(SetDuration, '/ACF/set_t_ramp', self.set_t_ramp)
 
 if __name__ == "__main__":
-    acf = FerroboticsACF()
-    rospy.spin()
-    acf.disconnect()
+    rclpy.init()
+    acf_node = FerroboticsACF()
+    rclpy.spin(acf_node)
+    acf_node.destroy_node()
+    rclpy.shutdown()
