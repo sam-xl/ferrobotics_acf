@@ -1,11 +1,20 @@
-<package>
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
  <name>ferrobotics_acf</name>
  <version>0.1.0</version>
  <description>A node for controlling the Ferrobotics Active Contact Flange over the TCP/IP Ethernet interface.</description>
  <author>Cameron Devine</author>
  <license>BSD</license>
  <maintainer email="camdev@uw.edu"/>
- <buildtool_depend>catkin</buildtool_depend>
- <build_depend>message_generation</build_depend>
- <run_depend>message_runtime</run_depend>
+ 
+ <buildtool_depend>ament_cmake</buildtool_depend>
+ <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+ <build_depend>rosidl_default_generators</build_depend>
+ <exec_depend>rosidl_default_runtime</exec_depend>
+ <member_of_group>rosidl_interface_packages</member_of_group>
+
+ <depend>rclpy</depend>
+ <depend>builtin_interfaces</depend>
 </package>
