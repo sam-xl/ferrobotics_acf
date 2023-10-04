@@ -51,3 +51,33 @@ To run the acf interface with an ACF with a non-default ip address:
 ```bash
 ros2 run ferrobotics_acf acf.py --ros-args -p ip:=192.168.123.132
 ```
+
+### Parameters
+
+The `acf.py` executable exposes the following parameters:
+
+- `ip` -> the acf ip address
+- `f_max` -> the maximum allowed force [N]
+- `initial_force` -> the force generated when no contact is detected [N]
+- `ramp_duration` -> the ramp time of the force once contact is detected [s]
+- `payload` -> the mass attached to the acf [kg]
+
+### Services
+
+The `ACF` node creates the following services:
+
+- `/ACF/set_payload` (SetFloat) -> used to set the current payload [kg]
+- `/ACF/set_f_zero` (SetFloat) -> used to set force generated when no contact is detected [N]
+- `/ACF/set_t_ramp` (SetDuration) -> used to set the ramp time of the force once contact is detected [s]
+
+### Publishers
+
+The `ACF` node publishes on the following topic:
+
+- `/ACF/telem` (ACFTelem) -> Contains return information from the ACF. Only published after receiving a force command.
+
+### Subscribers
+
+The `ACF` node subscribes to the following topic:
+
+- `/ACF/force` (Float32) -> Used to set the current output force of the ACF in Newtons. Telemetry information is sent after receiving a force command.
