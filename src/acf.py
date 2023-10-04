@@ -7,6 +7,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32
 from ferrobotics_acf.srv import SetFloat, SetDuration
 from ferrobotics_acf.msg import ACFTelem
+from sensor_msgs.msg import JointState
 
 import socket
 import sys
@@ -58,6 +59,8 @@ class FerroboticsACF(Node):
         self.declare_parameter('initial_force', 0.0)
         self.declare_parameter('ramp_duration', 0.0)
         self.declare_parameter('payload', 0.0)
+        self.declare_parameter('frequency', 0)
+        self.declare_parameter('joint_name', "")
 
         self.ip = self.get_parameter('ip').get_parameter_value().string_value
         self.port = self.get_parameter('port').get_parameter_value().integer_value
@@ -70,6 +73,10 @@ class FerroboticsACF(Node):
         assert self.check_ramp_duration(self.ramp_duration), "Invalid ramp duration"
         self.payload = self.get_parameter('payload').get_parameter_value().double_value
         assert self.check_payload(self.payload), "Invalid payload value"
+        self.frequency = self.get_parameter('frequency').get_parameter_value().integer_value
+        self.joint_name = self.get_parameter('joint_name').get_parameter_value().string_value
+        self.force = 0
+        self.i = 0
 
     def check_force(self, force):
         return -self.f_max <= force <= self.f_max
@@ -122,12 +129,28 @@ class FerroboticsACF(Node):
         except:
             pass
 
-    def command_handler(self, msg):
-        self.send_command(msg.data)
-        self.initial_force = msg.data
-        self.handle_telem()
+    def timer_callback(self):
+        self.send_command(self.force)
+        self.initial_force = self.force
+        telem = self.handle_telem()
+        if self.joint_state_pub is not None:
+            msg = JointState()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.header.frame_id = f"{self.i}"
+            msg.name = [self.joint_name]
+            msg.position = [telem.position/1000]
+            msg.velocity = [0.0]    # TODO Calculate this by finite difference
+            msg.effort = [0.0]      # TODO Send the current force at the joint
+            self.joint_state_pub.publish(msg)
+        self.i += 1
 
-    def handle_telem(self):
+    def command_handler(self, msg):
+        if self.frequency > 0:
+            self.force = msg.data
+        else:
+            self.timer_callback()
+
+    def handle_telem(self) -> ACFTelem:
         data = self.recv_telem()
         telem = ACFTelem()
         telem.id = int(data[0])
@@ -142,6 +165,7 @@ class FerroboticsACF(Node):
             self.ERROR_MESSAGES[i] for i, error in enumerate(telem.errors) if error
         ]
         self.telem_pub.publish(telem)
+        return telem
 
     def recv_telem(self):
         return (
@@ -185,6 +209,12 @@ class FerroboticsACF(Node):
         self.create_service(SetFloat, '/ACF/set_payload', self.set_payload)
         self.create_service(SetFloat, '/ACF/set_f_zero', self.set_f_zero)
         self.create_service(SetDuration, '/ACF/set_t_ramp', self.set_t_ramp)
+        if self.frequency > 0:
+            self.create_timer(1 / self.frequency, self.timer_callback)
+        if self.joint_name != "":
+            self.joint_state_pub = self.create_publisher(JointState, '/joint_states', 10)
+        else:
+            self.joint_state_pub = None
 
 if __name__ == "__main__":
     rclpy.init()
