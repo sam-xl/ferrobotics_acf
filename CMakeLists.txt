@@ -1,33 +1,33 @@
 
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 
 project(ferrobotics_acf)
 
-find_package(catkin REQUIRED COMPONENTS
-	rospy
-	message_generation
-	std_msgs)
+find_package(ament_cmake REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 
-add_message_files(
-	FILES
-	ACFTelem.msg
+set(msg_files
+	"msg/ACFTelem.msg"
 )
 
-add_service_files(
-	FILES
-	SetFloat.srv
-	SetDuration.srv
+set(srv_files
+	"srv/SetDuration.srv"
+	"srv/SetFloat.srv"
 )
 
-generate_messages(
-	DEPENDENCIES
-	std_msgs
+find_package(rosidl_default_generators REQUIRED)
+rosidl_generate_interfaces(${PROJECT_NAME}
+	${msg_files}
+	${srv_files}
+	DEPENDENCIES builtin_interfaces
 )
 
-catkin_package(
-	CATKIN_DEPENDS message_runtime
+install(PROGRAMS
+  src/acf.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-catkin_install_python(PROGRAMS
-	src/acf.py
-	DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+ament_package()
