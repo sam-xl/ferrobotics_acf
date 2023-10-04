@@ -45,8 +45,9 @@ class FerroboticsACF(Node):
         super().__init__('ACF')
         self.get_params()
         self.connect()
-        assert self.authenticate()
+        assert self.authenticate(), "Failed to authenticate"
         self.ros_setup()
+        self.get_logger().info(f"Done initialising.")
 
     def get_params(self):
         self.declare_parameter('ip', self.DEFAULT_IP)
@@ -57,7 +58,6 @@ class FerroboticsACF(Node):
         self.declare_parameter('initial_force', 0.0)
         self.declare_parameter('ramp_duration', 0.0)
         self.declare_parameter('payload', 0.0)
-        self.declare_parameter('frequency', 10.0)
 
         self.ip = self.get_parameter('ip').get_parameter_value().string_value
         self.port = self.get_parameter('port').get_parameter_value().integer_value
@@ -65,11 +65,11 @@ class FerroboticsACF(Node):
         self.id = self.get_parameter('id').get_parameter_value().integer_value
         self.f_max = self.get_parameter('f_max').get_parameter_value().integer_value
         self.initial_force = self.get_parameter('initial_force').get_parameter_value().double_value
-        assert self.check_force(self.initial_force)
+        assert self.check_force(self.initial_force), "Invalid force value"
         self.ramp_duration = self.get_parameter('ramp_duration').get_parameter_value().double_value
-        assert self.check_ramp_duration(self.ramp_duration)
+        assert self.check_ramp_duration(self.ramp_duration), "Invalid ramp duration"
         self.payload = self.get_parameter('payload').get_parameter_value().double_value
-        assert self.check_payload(self.payload)
+        assert self.check_payload(self.payload), "Invalid payload value"
 
     def check_force(self, force):
         return -self.f_max <= force <= self.f_max
@@ -81,8 +81,10 @@ class FerroboticsACF(Node):
         return 0 <= payload <= self.PAYLOAD_SHARE * self.f_max
 
     def connect(self):
+        self.get_logger().info(f"Attempting to connect to {self.ip}:{self.port}...")
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((self.ip, self.port))
+        self.get_logger().info(f"Connected.")
 
     def authenticate(self):
         data = bytes(self.authentication + self.TERMINATOR, *bytes_args)
@@ -111,7 +113,7 @@ class FerroboticsACF(Node):
         except:
             self.get_logger().warn("Reconnecting...")
             self.connect()
-            assert self.authenticate()
+            assert self.authenticate(), "Failed to authenticate"
             self.send_command(force)
 
     def disconnect(self):
