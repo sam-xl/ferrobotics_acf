@@ -145,9 +145,8 @@ class FerroboticsACF(Node):
         self.i += 1
 
     def command_handler(self, msg):
-        if self.frequency > 0:
-            self.force = msg.data
-        else:
+        self.force = msg.data
+        if self.frequency <= 0:
             self.timer_callback()
 
     def handle_telem(self) -> ACFTelem:
