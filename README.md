@@ -78,19 +78,19 @@ This node will also act as a joint state publisher when the `joint_name` paramet
 
 The `ACF` node creates the following services:
 
-- `/ACF/set_payload` (`SetFloat`) -> used to set the current payload [kg]
-- `/ACF/set_f_zero` (`SetFloat`) -> used to set force generated when no contact is detected [N]
-- `/ACF/set_t_ramp` (`SetDuration`) -> used to set the ramp time of the force once contact is detected [s]
+- `set_payload` (`SetFloat`) -> used to set the current payload [kg]
+- `set_f_zero` (`SetFloat`) -> used to set force generated when no contact is detected [N]
+- `set_t_ramp` (`SetDuration`) -> used to set the ramp time of the force once contact is detected [s]
 
 ### Publishers
 
 The `ACF` node publishes on the following topic:
 
-- `/ACF/telem` (`ACFTelem`) -> Contains return information from the ACF. Only published (shortly) after receiving a message on `/ACF/force` or when polling is active.
-- `/joint_state` (`JointState`) -> Publishes the current position of the ACF as a joint state. Only published if the `joint_name` parameter is set.
+- `telem` (`ACFTelem`) -> Contains return information from the ACF. Only published (shortly) after receiving a message on `/ACF/force` or when polling is active.
+- `joint_state` (`JointState`) -> Publishes the current position of the ACF as a joint state. Only published if the `joint_name` parameter is set.
 
 ### Subscribers
 
 The `ACF` node subscribes to the following topic:
 
-- `/ACF/force` (`Float32`) -> Used to set the current output force of the ACF in Newtons.
+- `force` (`Float32`) -> Used to set the current output force of the ACF in Newtons.

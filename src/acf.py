@@ -203,15 +203,15 @@ class FerroboticsACF(Node):
         return response
 
     def ros_setup(self):
-        self.create_subscription(Float32, '/ACF/force', self.command_handler, 10)
-        self.telem_pub = self.create_publisher(ACFTelem, '/ACF/telem', 5)
-        self.create_service(SetFloat, '/ACF/set_payload', self.set_payload)
-        self.create_service(SetFloat, '/ACF/set_f_zero', self.set_f_zero)
-        self.create_service(SetDuration, '/ACF/set_t_ramp', self.set_t_ramp)
+        self.create_subscription(Float32, 'force', self.command_handler, 10)
+        self.telem_pub = self.create_publisher(ACFTelem, 'telem', 5)
+        self.create_service(SetFloat, 'set_payload', self.set_payload)
+        self.create_service(SetFloat, 'set_f_zero', self.set_f_zero)
+        self.create_service(SetDuration, 'set_t_ramp', self.set_t_ramp)
         if self.frequency > 0:
             self.create_timer(1 / self.frequency, self.timer_callback)
         if self.joint_name != "":
-            self.joint_state_pub = self.create_publisher(JointState, '/joint_states', 10)
+            self.joint_state_pub = self.create_publisher(JointState, 'joint_states', 10)
         else:
             self.joint_state_pub = None
 
