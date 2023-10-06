@@ -86,11 +86,11 @@ The `ACF` node creates the following services:
 
 The `ACF` node publishes on the following topic:
 
-- `/ACF/telem` (`ACFTelem`) -> Contains return information from the ACF. Only published after receiving a force command.
+- `/ACF/telem` (`ACFTelem`) -> Contains return information from the ACF. Only published (shortly) after receiving a message on `/ACF/force` or when polling is active.
 - `/joint_state` (`JointState`) -> Publishes the current position of the ACF as a joint state. Only published if the `joint_name` parameter is set.
 
 ### Subscribers
 
 The `ACF` node subscribes to the following topic:
 
-- `/ACF/force` (`Float32`) -> Used to set the current output force of the ACF in Newtons. Telemetry information is sent after receiving a force command.
+- `/ACF/force` (`Float32`) -> Used to set the current output force of the ACF in Newtons.
