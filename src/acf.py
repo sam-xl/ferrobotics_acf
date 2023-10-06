@@ -76,7 +76,6 @@ class FerroboticsACF(Node):
         self.frequency = self.get_parameter('frequency').get_parameter_value().integer_value
         self.joint_name = self.get_parameter('joint_name').get_parameter_value().string_value
         self.force = 0
-        self.i = 0
 
     def check_force(self, force):
         return -self.f_max <= force <= self.f_max
@@ -136,13 +135,11 @@ class FerroboticsACF(Node):
         if self.joint_state_pub is not None:
             msg = JointState()
             msg.header.stamp = self.get_clock().now().to_msg()
-            msg.header.frame_id = f"{self.i}"
             msg.name = [self.joint_name]
             msg.position = [telem.position / 1e3] # Convert from mm to m
             # msg.velocity = [] # TODO Calculate this by finite difference
             # msg.effort = [] # TODO Send the current force at the joint
             self.joint_state_pub.publish(msg)
-        self.i += 1
 
     def command_handler(self, msg):
         self.force = msg.data
