@@ -56,13 +56,13 @@ ros2 run ferrobotics_acf acf.py --ros-args -p ip:=192.168.123.132
 
 The `acf.py` executable exposes the following parameters:
 
-- `ip` -> the acf ip address
-- `f_max` -> the maximum allowed force [N]
-- `initial_force` -> the force generated when no contact is detected [N]
-- `ramp_duration` -> the ramp time of the force once contact is detected [s]
-- `payload` -> the mass attached to the acf [kg]
-- `frequency` -> the polling frequency [Hz]
-- `joint_name` -> the ACF joint name
+- `ip` -> the acf ip address (string)
+- `f_max` -> the maximum allowed force [N] (integer)
+- `initial_force` -> the force generated when no contact is detected [N] (double)
+- `ramp_duration` -> the ramp time of the force once contact is detected [s] (double)
+- `payload` -> the mass attached to the acf [kg] (double)
+- `frequency` -> the polling frequency [Hz] (integer)
+- `joint_name` -> the ACF joint name (string)
 
 ### Polling mode
 
@@ -78,19 +78,19 @@ This node will also act as a joint state publisher when the `joint_name` paramet
 
 The `ACF` node creates the following services:
 
-- `/ACF/set_payload` (SetFloat) -> used to set the current payload [kg]
-- `/ACF/set_f_zero` (SetFloat) -> used to set force generated when no contact is detected [N]
-- `/ACF/set_t_ramp` (SetDuration) -> used to set the ramp time of the force once contact is detected [s]
+- `/ACF/set_payload` (`SetFloat`) -> used to set the current payload [kg]
+- `/ACF/set_f_zero` (`SetFloat`) -> used to set force generated when no contact is detected [N]
+- `/ACF/set_t_ramp` (`SetDuration`) -> used to set the ramp time of the force once contact is detected [s]
 
 ### Publishers
 
 The `ACF` node publishes on the following topic:
 
-- `/ACF/telem` (ACFTelem) -> Contains return information from the ACF. Only published after receiving a force command.
-- `/joint_state` (JointState) -> Publishes the current position of the ACF as a joint state. Only published if the `joint_name` parameter is set.
+- `/ACF/telem` (`ACFTelem`) -> Contains return information from the ACF. Only published after receiving a force command.
+- `/joint_state` (`JointState`) -> Publishes the current position of the ACF as a joint state. Only published if the `joint_name` parameter is set.
 
 ### Subscribers
 
 The `ACF` node subscribes to the following topic:
 
-- `/ACF/force` (Float32) -> Used to set the current output force of the ACF in Newtons. Telemetry information is sent after receiving a force command.
+- `/ACF/force` (`Float32`) -> Used to set the current output force of the ACF in Newtons. Telemetry information is sent after receiving a force command.
