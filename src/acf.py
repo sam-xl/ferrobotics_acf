@@ -138,9 +138,9 @@ class FerroboticsACF(Node):
             msg.header.stamp = self.get_clock().now().to_msg()
             msg.header.frame_id = f"{self.i}"
             msg.name = [self.joint_name]
-            msg.position = [telem.position/1000]
-            msg.velocity = [0.0]    # TODO Calculate this by finite difference
-            msg.effort = [0.0]      # TODO Send the current force at the joint
+            msg.position = [telem.position / 1e3] # Convert from mm to m
+            # msg.velocity = [] # TODO Calculate this by finite difference
+            # msg.effort = [] # TODO Send the current force at the joint
             self.joint_state_pub.publish(msg)
         self.i += 1
 
@@ -192,7 +192,7 @@ class FerroboticsACF(Node):
         return response
 
     def set_t_ramp(self, request : SetDuration.Request, response : SetDuration.Response):
-        duration = request.duration.sec + (request.duration.nanosec / 1000000000.0)
+        duration = request.duration.sec + (request.duration.nanosec / 1e9)
         if not self.check_ramp_duration(duration):
             response.success = False
             response.message = "Invalid duration."
@@ -209,7 +209,7 @@ class FerroboticsACF(Node):
         self.create_service(SetFloat, 'set_f_zero', self.set_f_zero)
         self.create_service(SetDuration, 'set_t_ramp', self.set_t_ramp)
         if self.frequency > 0:
-            self.create_timer(1 / self.frequency, self.timer_callback)
+            self.create_timer(1.0 / self.frequency, self.timer_callback)
         if self.joint_name != "":
             self.joint_state_pub = self.create_publisher(JointState, 'joint_states', 10)
         else:
