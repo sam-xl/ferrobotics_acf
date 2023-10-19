@@ -8,6 +8,7 @@ find_package(rclpy REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(builtin_interfaces REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 set(msg_files
 	"msg/ACFTelem.msg"
