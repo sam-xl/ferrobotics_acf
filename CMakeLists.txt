@@ -9,9 +9,11 @@ find_package(builtin_interfaces REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 set(msg_files
 	"msg/ACFTelem.msg"
+	"msg/ACFTelemStamped.msg"
 )
 
 set(srv_files
@@ -24,6 +26,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 	${msg_files}
 	${srv_files}
 	DEPENDENCIES builtin_interfaces
+	DEPENDENCIES std_msgs
 )
 
 install(PROGRAMS
