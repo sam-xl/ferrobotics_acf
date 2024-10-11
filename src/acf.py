@@ -2,6 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 
 # Import messages and services
 from std_msgs.msg import Float32
@@ -19,7 +20,7 @@ if sys.version_info.major >= 3:
 
 
 class FerroboticsACF(Node):
-    DEFAULT_IP = "192.168.99.1"
+    DEFAULT_IP = "169.254.200.17"
     DEFAULT_PORT = 7070
     DEFAULT_AUTHENTICATION = "ferba"
     DEFAULT_ID = 1040
@@ -220,6 +221,14 @@ class FerroboticsACF(Node):
 if __name__ == "__main__":
     rclpy.init()
     acf_node = FerroboticsACF()
-    rclpy.spin(acf_node)
+    try:
+        rclpy.spin(acf_node, executor=MultiThreadedExecutor())
+    except KeyboardInterrupt:
+        pass 
     acf_node.destroy_node()
-    rclpy.shutdown()
+    
+    # Avoid stack trace 
+    try:
+        rclpy.shutdown()
+    except rclpy._rclpy_pybind11.RCLError:
+        pass 
