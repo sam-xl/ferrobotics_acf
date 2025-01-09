@@ -2,11 +2,13 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 
 # Import messages and services
 from std_msgs.msg import Float32
+from stamped_std_msgs.msg import Float32Stamped
 from ferrobotics_acf.srv import SetFloat, SetDuration
-from ferrobotics_acf.msg import ACFTelem
+from ferrobotics_acf.msg import ACFTelem, ACFTelemStamped
 from sensor_msgs.msg import JointState
 
 import socket
@@ -18,7 +20,7 @@ if sys.version_info.major >= 3:
 
 
 class FerroboticsACF(Node):
-    DEFAULT_IP = "192.168.99.1"
+    DEFAULT_IP = "169.254.200.17"
     DEFAULT_PORT = 7070
     DEFAULT_AUTHENTICATION = "ferba"
     DEFAULT_ID = 1040
@@ -147,7 +149,9 @@ class FerroboticsACF(Node):
             self.timer_callback()
 
     def handle_telem(self) -> ACFTelem:
-        data = self.recv_telem()
+        data, stamp = self.recv_telem()
+        telem_stamped = ACFTelemStamped()
+        telem_stamped.header.stamp = stamp
         telem = ACFTelem()
         telem.id = int(data[0])
         telem.force = float(data[1])
@@ -160,12 +164,14 @@ class FerroboticsACF(Node):
         telem.error_messages = [
             self.ERROR_MESSAGES[i] for i, error in enumerate(telem.errors) if error
         ]
-        self.telem_pub.publish(telem)
+        telem_stamped.telemetry = telem
+        self.telem_pub.publish(telem_stamped)
         return telem
 
     def recv_telem(self):
+        telem_time_msg = self.get_clock().now().to_msg()
         return (
-            self.sock.recv(self.BUFSIZE).decode().strip(self.TERMINATOR).split(self.DELIMINATOR)
+            self.sock.recv(self.BUFSIZE).decode().strip(self.TERMINATOR).split(self.DELIMINATOR), telem_time_msg
         )
 
     def set_payload(self, request : SetFloat.Request, response : SetFloat.Response):
@@ -200,8 +206,8 @@ class FerroboticsACF(Node):
         return response
 
     def ros_setup(self):
-        self.create_subscription(Float32, '~/force', self.command_handler, 10)
-        self.telem_pub = self.create_publisher(ACFTelem, '~/telem', 5)
+        self.create_subscription(Float32Stamped, '~/force', self.command_handler, 10)
+        self.telem_pub = self.create_publisher(ACFTelemStamped, '~/telem', 5)
         self.create_service(SetFloat, '~/set_payload', self.set_payload)
         self.create_service(SetFloat, '~/set_f_zero', self.set_f_zero)
         self.create_service(SetDuration, '~/set_t_ramp', self.set_t_ramp)
@@ -215,6 +221,14 @@ class FerroboticsACF(Node):
 if __name__ == "__main__":
     rclpy.init()
     acf_node = FerroboticsACF()
-    rclpy.spin(acf_node)
+    try:
+        rclpy.spin(acf_node, executor=MultiThreadedExecutor())
+    except KeyboardInterrupt:
+        pass 
     acf_node.destroy_node()
-    rclpy.shutdown()
+    
+    # Avoid stack trace 
+    try:
+        rclpy.shutdown()
+    except rclpy._rclpy_pybind11.RCLError:
+        pass 

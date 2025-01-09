@@ -18,7 +18,7 @@ Clone the correct version for **Humble** from this repository inside your worksp
 
 ```bash
 cd ros2_ws/src
-git clone https://github.com/thettasch/ferrobotics_acf.git -b humble
+git clone https://github.com/sam-xl/ferrobotics_acf.git -b humble
 cd ..
 ```
 
