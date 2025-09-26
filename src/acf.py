@@ -6,7 +6,6 @@ from rclpy.executors import MultiThreadedExecutor
 
 # Import messages and services
 from std_msgs.msg import Float32
-from stamped_std_msgs.msg import Float32Stamped
 from ferrobotics_acf.srv import SetFloat, SetDuration
 from ferrobotics_acf.msg import ACFTelem, ACFTelemStamped
 from sensor_msgs.msg import JointState
@@ -206,7 +205,7 @@ class FerroboticsACF(Node):
         return response
 
     def ros_setup(self):
-        self.create_subscription(Float32Stamped, '~/force', self.command_handler, 10)
+        self.create_subscription(Float32, '~/force', self.command_handler, 10)
         self.telem_pub = self.create_publisher(ACFTelemStamped, '~/telem', 5)
         self.create_service(SetFloat, '~/set_payload', self.set_payload)
         self.create_service(SetFloat, '~/set_f_zero', self.set_f_zero)
