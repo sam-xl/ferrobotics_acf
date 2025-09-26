@@ -27,6 +27,7 @@ def generate_launch_description():
              'ramp_duration': 0.,
              'frequency':120,
              'payload': 0.0,
+             'mock': False,
             }
         ]
     )

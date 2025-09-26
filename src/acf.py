@@ -46,12 +46,18 @@ class FerroboticsACF(Node):
     def __init__(self):
         super().__init__('acf')
         self.get_params()
-        self.connect()
-        assert self.authenticate(), "Failed to authenticate"
+        if not self.mock:
+            self.connect()
+            assert self.authenticate(), "Failed to authenticate"
+        if self.mock:
+            self.mock_position = -0.0355 # Start retracted when in mock mode
+            self.mock_last_time = None
+            self.get_logger().warn("Using MOCK acf driver!")
         self.ros_setup()
         self.get_logger().info(f"Done initialising.")
 
     def get_params(self):
+        self.declare_parameter('mock', False)
         self.declare_parameter('ip', self.DEFAULT_IP)
         self.declare_parameter('port', self.DEFAULT_PORT)
         self.declare_parameter('authentication', self.DEFAULT_AUTHENTICATION)
@@ -63,6 +69,7 @@ class FerroboticsACF(Node):
         self.declare_parameter('frequency', 0)
         self.declare_parameter('joint_name', "")
 
+        self.mock = self.get_parameter('mock').get_parameter_value().bool_value
         self.ip = self.get_parameter('ip').get_parameter_value().string_value
         self.port = self.get_parameter('port').get_parameter_value().integer_value
         self.authentication = self.get_parameter('authentication').get_parameter_value().string_value
@@ -98,6 +105,28 @@ class FerroboticsACF(Node):
         self.sock.send(data)
         return data == self.sock.recv(self.BUFSIZE)
 
+    def mock_send_command(self, force):
+        if self.mock_last_time is None:
+            self.mock_last_time = self.get_clock().now()
+            return
+        current_time = self.get_clock().now()
+        dt = (current_time - self.mock_last_time).nanoseconds / 1e9  # Convert to seconds
+        self.mock_last_time = current_time
+        
+        # self.force = force
+        MAX_POSITION = 0.0
+        MIN_POSITION = -35.5
+        TRAVEL_SPEED = 50.0 # mm/s
+        
+        force_sign = 1 if force > 0.0 else -1 if force < 0.0 else 0 # Not pretty, but should work
+        
+        self.mock_position += force_sign * TRAVEL_SPEED * dt
+        if self.mock_position > MAX_POSITION:
+            self.mock_position = MAX_POSITION
+        if self.mock_position < MIN_POSITION:
+            self.mock_position = MIN_POSITION
+                
+    
     def send_command(self, force):
         try:
             self.sock.send(
@@ -130,14 +159,14 @@ class FerroboticsACF(Node):
             pass
 
     def timer_callback(self):
-        self.send_command(self.force)
+        self.send_command(self.force) if not self.mock else self.mock_send_command(self.force)
         self.initial_force = self.force
-        telem = self.handle_telem()
+        telem = self.handle_telem() if not self.mock else self.mock_handle_telem()
         if self.joint_state_pub is not None:
             msg = JointState()
             msg.header.stamp = self.get_clock().now().to_msg()
             msg.name = [self.joint_name]
-            msg.position = [telem.position / 1e3] # Convert from mm to m
+            msg.position = [float(telem.position) / 1e3] # Convert from mm to m
             # msg.velocity = [] # TODO Calculate this by finite difference
             # msg.effort = [] # TODO Send the current force at the joint
             self.joint_state_pub.publish(msg)
@@ -146,6 +175,25 @@ class FerroboticsACF(Node):
         self.force = msg.data
         if self.frequency <= 0:
             self.timer_callback()
+            
+    def mock_handle_telem(self) -> ACFTelem:
+        telem_stamped = ACFTelemStamped()
+        telem_stamped.header.stamp = self.get_clock().now().to_msg()
+        telem = ACFTelem()
+        telem.id = int(self.id)
+        telem.force = float(self.force)
+        telem.position = float(self.mock_position)
+        telem.in_contact = False
+        telem.in_error = False
+        telem.errors = [
+            bool(int(0) & (1 << i)) for i in range(self.ERROR_CODE_BIN_LENGTH)
+        ]
+        telem.error_messages = [
+            self.ERROR_MESSAGES[i] for i, error in enumerate(telem.errors) if error
+        ]
+        telem_stamped.telemetry = telem
+        self.telem_pub.publish(telem_stamped)
+        return telem
 
     def handle_telem(self) -> ACFTelem:
         data, stamp = self.recv_telem()
