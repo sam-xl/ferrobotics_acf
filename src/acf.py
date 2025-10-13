@@ -202,7 +202,7 @@ class FerroboticsACF(Node):
         telem = ACFTelem()
         telem.id = int(data[0])
         telem.force = float(data[1])
-        telem.position = float(data[2])
+        telem.position = float(data[2]) - 35.5
         telem.in_contact = bool(data[3])
         telem.in_error = int(data[4]) > 0
         telem.errors = [
